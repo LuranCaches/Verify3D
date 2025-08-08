@@ -4,7 +4,7 @@ Interactive radar + difficulty slider for scoping 3D projects. Installable PWA, 
 
 ## 🔧 Deploy (One‑click)
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)] (https://github.com/LuranCaches/Verify3D)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)] (https://app.netlify.com/start/deploy?repository=https://github.com/LuranCaches/Verify3D)
 
 **After you push this folder to a public GitHub repo**, replace `<YOUR_GITHUB_REPO_URL>` above with your repo URL, e.g.:
 
