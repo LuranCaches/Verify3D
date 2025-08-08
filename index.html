@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>3D Project Complexity — Radar</title>
+  <style>
+    :root{
+      --bg:#0f1115; --panel:#151922; --muted:#95a0b8; --text:#ecf1fb;
+      --grid:#273349; --accent:#6aa3ff; --border:#1c2436; --chip:#1b2232; --btn:#192336;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--text); background:#0f1115;}
+    header{padding:16px 20px; border-bottom:1px solid var(--border); background:#0f1218;}
+    header h1{font-size:18px; margin:0 0 6px}
+    header .sub{font-size:12px; color:var(--muted)}
+    main{max-width:1100px; margin:0 auto; padding:16px; display:grid; grid-template-columns:1fr; gap:14px}
+    .top{display:grid; grid-template-columns: 420px 1fr; gap:14px}
+    @media (max-width: 980px){ .top{grid-template-columns:1fr} }
+    .panel{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px}
+    h2{font-size:14px; margin:0 0 10px; color:#d5e3ff}
+    #canvasWrap{position:relative; width:100%; aspect-ratio:1/1; background:#0e1320; border-radius:12px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center}
+    canvas{width:96%; height:96%}
+    .meter{padding:12px; background:#0f1423; border:1px solid var(--border); border-radius:12px}
+    .barWrap{position:relative; height:14px; border-radius:16px; overflow:hidden; background:linear-gradient(90deg,#1cc16e 0%, #ffd42a 50%, #ff5c5c 100%);}
+    .bar{position:absolute; top:0; left:0; bottom:0; width:0%; background:rgba(255,255,255,.12)}
+    .scoreRow{display:flex; gap:10px; align-items:center; margin-top:8px; flex-wrap:wrap}
+    .score{font-weight:700}
+    .sliderRow{display:flex; align-items:center; gap:10px; margin-top:8px}
+    input[type="range"]{width:100%}
+    .face{font-size:22px; line-height:1}
+    .resetRow{display:flex; justify-content:center; align-items:center}
+    .reset{appearance:none; background:linear-gradient(180deg,#244d8f,#1c3d73); border:1px solid #2f5fb3; color:#eaf2ff; padding:14px 22px; border-radius:12px; font-weight:800; letter-spacing:.2px; cursor:pointer; width:100%; max-width:480px; box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    .reset:hover{filter:brightness(1.05)}
+    .groups{display:grid; grid-template-columns: repeat(5, 1fr); gap:10px}
+    @media (max-width: 1100px){ .groups{grid-template-columns: repeat(2, 1fr)} }
+    @media (max-width: 620px){ .groups{grid-template-columns: 1fr} }
+    .group{background:#0f1423; border:1px solid var(--border); border-radius:12px; overflow:hidden}
+    .group header{padding:10px 12px; background:#0d1220; border-bottom:1px solid var(--border); font-weight:600}
+    .items{padding:8px}
+    .btn{display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; text-align:left; background:var(--btn); border:1px solid #24314a; color:#dbe7ff; padding:10px 12px; border-radius:10px; margin:6px 0; cursor:pointer; font-size:12px}
+    .btn .impact{opacity:.8; font-variant-numeric:tabular-nums}
+    .btn.active.raise{background:rgba(255,92,92,.12); border-color:#ff7d7d; color:#ffd6d6}
+    .btn.active.lower{background:rgba(25,195,125,.12); border-color:#49d39d; color:#b9f2d9}
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+    .chip{background:var(--chip); border:1px solid #2b3957; color:#cfe2ff; padding:6px 8px; border-radius:16px; font-size:12px; display:inline-flex; gap:6px; align-items:center}
+    .chip.raise{border-color:#ff7d7d; color:#ffd6d6}
+    .chip.lower{border-color:#49d39d; color:#b8f3d9}
+    .chip .x{cursor:pointer; opacity:.85}
+    .legend{color:var(--muted); font-size:12px; margin-top:6px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>3D Project Complexity</h1>
+  <div class="sub">Installable PWA. Radar + difficulty slider. Buttons toggle characteristics (green lowers, red increases).</div>
+</header>
+
+<main>
+  <div class="top">
+    <section class="panel">
+      <h2>Radar</h2>
+      <div id="canvasWrap"><canvas id="radar" width="900" height="900"></canvas></div>
+      <div class="legend">Each axis is clamped 1–10. Base is 5.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Overall difficulty</h2>
+      <div class="meter">
+        <div class="barWrap" aria-hidden="true"><div class="bar" id="barMask"></div></div>
+        <div class="scoreRow">
+          <span>Total Score:</span>
+          <span class="score" id="totalScore">25</span>
+          <span class="legend">(<span id="scoreRange">yellow</span>)</span>
+          <span class="face" id="face">😴</span>
+        </div>
+        <div class="sliderRow">
+          <input id="scoreSlider" type="range" min="0" max="50" step="1" value="25" disabled />
+          <span id="sliderVal">25</span>
+        </div>
+        <div id="chips" class="chips" aria-live="polite"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="resetRow"><button class="reset" id="resetBtn">RESET</button></div>
+
+  <section class="panel">
+    <h2>Characteristics</h2>
+    <div class="groups" id="groups"></div>
+  </section>
+</main>
+
+<script>
+// Register service worker for PWA/offline
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+
+<script>
+(function(){
+  const base = 5;
+  const cats = ["Art Direction","Modeling","Deliverables","FX","Render Time"];
+  const options = {
+    "Art Direction":[
+      ["Client provides a moodboard",-1],
+      ["No defined universe",+3],
+      ["Client owns an asset library",-2],
+      ["Campaigns already produced",-1],
+      ["We must recreate assets",+1],
+      ["Original elements (illus/typo/icons)",+3]
+    ],
+    "Modeling":[
+      ["All elements provided & compatible",-10],
+      ["Client has 3D base to rework",-1],
+      ["Purchasable assets available",-1],
+      ["Clothing modeling",+4],
+      ["Shoes modeling",+4],
+      ["Hard-surface (simple objects)",+1],
+      ["Bottle modeling",+2],
+      ["Car modeling",+5],
+      ["Engraved/embossed parts",+2]
+    ],
+    "Deliverables":[
+      ["Single format only",-3],
+      ["16:9 and 9:16",+3],
+      ["9:16 and 1:1/4:5",+1],
+      ["Short deadline (< 1.5 weeks)",+4],
+      ["Long deadline (> 4 weeks)",-4],
+      ["Deliver working files",+2]
+    ],
+    "FX":[
+      ["Morphing",+2],
+      ["Particles",+1],
+      ["Physics simulation",+3],
+      ["Liquid simulation",+4],
+      ["Smoke/Fire simulation",+2],
+      ["Buyable FX assets",-4]
+    ],
+    "Render Time":[
+      ["Full 3D",+3],
+      ["FOOH integrated in scene",-2],
+      ["Short video (< 10s)",-1],
+      ["Long video (> 15s)",+3]
+    ]
+  };
+
+  let active = {};
+  let scores = Object.fromEntries(cats.map(c=>[c, base]));
+
+  // DOM
+  const groupsEl = document.getElementById('groups');
+  const chipsEl  = document.getElementById('chips');
+  const totalScoreEl = document.getElementById('totalScore');
+  const scoreSlider = document.getElementById('scoreSlider');
+  const barMask = document.getElementById('barMask');
+  const scoreRange = document.getElementById('scoreRange');
+  const face = document.getElementById('face');
+  const resetBtn = document.getElementById('resetBtn');
+  const canvas = document.getElementById('radar');
+  const ctx = canvas.getContext('2d');
+  const DPI = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = 900 * DPI; canvas.height = 900 * DPI;
+
+  function buildButtons(){
+    cats.forEach(cat=>{
+      const box = document.createElement('div');
+      box.className = 'group';
+      box.innerHTML = `<header>${cat}</header><div class="items"></div>`;
+      const items = box.querySelector('.items');
+      options[cat].forEach(([label,imp])=>{
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.dataset.cat = cat;
+        btn.dataset.label = label;
+        btn.dataset.impact = imp;
+        const cls = (imp>0) ? 'raise' : 'lower';
+        btn.innerHTML = `<span>${label}</span><span class="impact">${imp>0? '+'+imp:imp}</span>`;
+        btn.addEventListener('click', ()=>toggle(btn, cls));
+        items.appendChild(btn);
+      });
+      groupsEl.appendChild(box);
+    });
+  }
+
+  function toggle(btn, cls){
+    const key = btn.dataset.cat + ':' + btn.dataset.label;
+    const imp = parseFloat(btn.dataset.impact);
+    if(active[key] != null){
+      delete active[key];
+      btn.classList.remove('active','raise','lower');
+    }else{
+      active[key] = imp;
+      btn.classList.add('active', cls);
+    }
+    compute();
+  }
+
+  function compute(){
+    // reset per-axis to base
+    scores = Object.fromEntries(cats.map(c=>[c, base]));
+    Object.entries(active).forEach(([key,imp])=>{
+      const cat = key.split(':')[0];
+      scores[cat] += imp;
+    });
+    // clamp 1..10
+    cats.forEach(c=>{ scores[c] = Math.max(1, Math.min(10, scores[c])); });
+    const total = cats.reduce((a,c)=>a+scores[c],0); // 0..50
+    updateUI(total);
+    draw();
+  }
+
+  function updateUI(total){
+    totalScoreEl.textContent = total.toFixed(0);
+    scoreSlider.value = total;
+    document.getElementById('sliderVal').textContent = total.toFixed(0);
+    const pct = Math.max(0, Math.min(100, (total/50)*100));
+    barMask.style.width = (100-pct)+'%'; // reveals green->yellow->red gradient underneath
+
+    if(total < 15){ scoreRange.textContent='sleeping'; face.textContent='😴'; }
+    else if(total < 25){ scoreRange.textContent='cruising'; face.textContent='🙂'; }
+    else if(total < 35){ scoreRange.textContent='sweaty'; face.textContent='😅'; }
+    else { scoreRange.textContent='panic'; face.textContent='😵‍💫'; }
+
+    // chips
+    chipsEl.innerHTML='';
+    Object.keys(active).forEach(k=>{
+      const [cat,label] = k.split(':');
+      const imp = active[k];
+      const chip = document.createElement('span');
+      chip.className = 'chip ' + (imp>0?'raise':'lower');
+      chip.innerHTML = `<strong>${cat}</strong> — ${label} <span class="x">✕</span>`;
+      chip.querySelector('.x').addEventListener('click', ()=>{
+        // untoggle matching button
+        document.querySelectorAll('.btn').forEach(b=>{
+          if(b.dataset.cat===cat && b.dataset.label===label){
+            b.classList.remove('active','raise','lower');
+          }
+        });
+        delete active[k];
+        compute();
+      });
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  function draw(){
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const cx = w/2, cy = h/2;
+    const radius = Math.min(w,h)*0.36;
+    const N = cats.length;
+    const gridColor = '#273349';
+
+    function angle(i){ return -Math.PI/2 + i*(2*Math.PI/N); }
+    function toXY(val, i){
+      const r = (val/10)*radius;
+      return [cx + r*Math.cos(angle(i)), cy + r*Math.sin(angle(i))];
+    }
+
+    // grid rings
+    ctx.lineWidth = 1*DPI;
+    for(let v=2; v<=10; v+=2){
+      ctx.beginPath();
+      for(let i=0;i<N;i++){
+        const [x,y]=toXY(v,i);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = gridColor;
+      ctx.stroke();
+    }
+    // axes + labels
+    for(let i=0;i<N;i++){
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      const [x,y]=toXY(10,i);
+      ctx.lineTo(x,y);
+      ctx.strokeStyle = gridColor;
+      ctx.stroke();
+      const [lx,ly]=toXY(11.2,i);
+      ctx.fillStyle='#d5e3ff';
+      ctx.font=(14*DPI)+'px system-ui';
+      ctx.textAlign = lx>cx ? 'left' : (lx<cx ? 'right':'center');
+      ctx.textBaseline = ly>cy ? 'top' : (ly<cy ? 'bottom':'middle');
+      ctx.fillText(cats[i], lx, ly);
+    }
+    // data polygon
+    ctx.beginPath();
+    cats.forEach((c,i)=>{
+      const [x,y]=toXY(scores[c],i);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.closePath();
+    ctx.fillStyle='rgba(106,163,255,0.28)';
+    ctx.strokeStyle='#6aa3ff';
+    ctx.lineWidth=2*DPI;
+    ctx.fill();
+    ctx.stroke();
+    // points
+    cats.forEach((c,i)=>{
+      const [x,y]=toXY(scores[c],i);
+      ctx.beginPath();
+      ctx.arc(x,y,4*DPI,0,Math.PI*2);
+      ctx.fillStyle='#19c37d';
+      ctx.fill();
+    });
+  }
+
+  // Reset
+  resetBtn.addEventListener('click', ()=>{
+    active = {};
+    document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active','raise','lower'));
+    compute();
+  });
+
+  // Build & init
+  (function build(){
+    const groupsEl = document.getElementById('groups');
+    cats.forEach(cat=>{
+      const box = document.createElement('div');
+      box.className = 'group';
+      box.innerHTML = `<header>${cat}</header><div class="items"></div>`;
+      const items = box.querySelector('.items');
+      options[cat].forEach(([label,imp])=>{
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.dataset.cat = cat;
+        btn.dataset.label = label;
+        btn.dataset.impact = imp;
+        const cls = (imp>0) ? 'raise' : 'lower';
+        btn.innerHTML = `<span>${label}</span><span class="impact">${imp>0? '+'+imp:imp}</span>`;
+        btn.addEventListener('click', ()=>toggle(btn, cls));
+        items.appendChild(btn);
+      });
+      groupsEl.appendChild(box);
+    });
+    compute();
+  })();
+})();
+</script>
+</body>
+</html>
