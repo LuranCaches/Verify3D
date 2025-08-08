@@ -1,2 +1,1 @@
-# Verify3D
-App for evaluation of how an incoming 3D project can be complex.
+https://app.netlify.com/start/deploy?repository=https://github.com/yourname/3d-radar
